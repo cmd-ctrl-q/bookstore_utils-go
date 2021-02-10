@@ -2,14 +2,26 @@ package logger
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
+const (
+	envLogLevel  = "LOG_LEVEL"
+	envLogOutput = "LOG_OUTPUT"
+)
+
 var (
 	log logger
 )
+
+type bookstoreLogger interface {
+	Printf(format string, v ...interface{})
+	Print(v ...interface{})
+}
 
 type logger struct {
 	log *zap.Logger
@@ -19,8 +31,8 @@ func init() {
 	// log configuration
 	logConfig := zap.Config{
 		// temporarily log into stdout
-		OutputPaths: []string{"stdout"},
-		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
+		OutputPaths: []string{getOutput()},
+		Level:       zap.NewAtomicLevelAt(getLevel()),
 		Encoding:    "json",
 		EncoderConfig: zapcore.EncoderConfig{
 			LevelKey:     "level",
@@ -38,7 +50,23 @@ func init() {
 	}
 }
 
+func getLevel() zapcore.Level {
+
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(envLogLevel))) {
+	case "debug":
+		return zap.DebugLevel
+	case "error":
+		return zap.ErrorLevel
+	case "info":
+		return zap.InfoLevel
+	default:
+		return zap.InfoLevel
+	}
+}
+
 // Printf implements the Printf method in ES.
+// It is necessary for the bookstoreLogger to have this method
+// because the zap library has it for it's logger.
 func (l logger) Printf(format string, v ...interface{}) {
 	if len(v) == 0 {
 		Info(format)
@@ -47,14 +75,27 @@ func (l logger) Printf(format string, v ...interface{}) {
 	}
 }
 
+func (l logger) Print(v ...interface{}) {
+	Info(fmt.Sprintf("%s", v))
+}
+
 // Info overrides the Log.Info method to log the info and sync
 func Info(msg string, tags ...zap.Field) {
 	log.log.Info(msg, tags...)
 	log.log.Sync()
 }
 
+// getOutput returns the location where the log data will output
+func getOutput() string {
+	output := strings.TrimSpace(os.Getenv(envLogOutput))
+	if output == "" {
+		return "stdout"
+	}
+	return output
+}
+
 // GetLogger makes the private log available
-func GetLogger() logger {
+func GetLogger() bookstoreLogger {
 	return log
 }
 
