@@ -21,8 +21,8 @@ func TestNewInternalServerError(t *testing.T) {
 
 	// not expecting a cause
 	assert.NotNil(t, err.Causes)
-	assert.EqualValues(t, 1, len(err.Causes))
-	assert.EqualValues(t, "database error", err.Causes[0])
+	assert.EqualValues(t, 1, len(err.Causes()))
+	assert.EqualValues(t, "database error", err.Causes()[0])
 
 	// errBytes, _ := json.Marshal(err)
 	// fmt.Println(string(errBytes))
