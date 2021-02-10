@@ -1,6 +1,7 @@
 package rest_errors
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ type restErr struct {
 	causes  []interface{} `json:"causes"` // causes of the error
 }
 
+// RestErr interface
 type RestErr interface {
 	Message() string
 	Status() int
@@ -52,6 +54,17 @@ func NewRestError(message string, status int, err string, causes []interface{}) 
 // NewError is largely used to send a vague description back to an external caller.
 func NewError(msg string) error {
 	return errors.New(msg)
+}
+
+// NewRestErrorFromBytes attempts to create a RestErr
+// If bytes object cannot be unmarshalled then return an
+// invalid json error back to caller
+func NewRestErrorFromBytes(bytes []byte) (RestErr, error) {
+	var apiErr restErr
+	if err := json.Unmarshal(bytes, &apiErr); err != nil {
+		return nil, errors.New("invalid json")
+	}
+	return apiErr, nil
 }
 
 // NewBadRequestError returns a status bad request
